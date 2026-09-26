@@ -1,154 +1,240 @@
 # WMS AutoHarness — Global Production Setup
 
-This fork is the hardened World Model Sports build of AutoHarness.
+Canonical distribution: `ghadfield32/autoharness-wms`  
+Release line: `0.5.4-wms.2`  
+Pinned upstream base: `tigerless-labs/autoharness@ca39a72e4353ebef11b7de13c1fc7fa5f4df421b`
 
-## Goal
+## What "global" means
 
-Run one AutoHarness installation across Claude Code projects while keeping two scopes separate:
+One **user-scope Claude Code plugin installation** is available across local projects, while learned
+knowledge remains split by blast radius:
 
-- **project** → `<repo>/.claude/skills/`
-- **global** → `~/.claude/skills/`
+- **project skills** → `<repo>/.claude/skills/`
+- **global skills** → `~/.claude/skills/`
 
-The global layer is for rules that apply unchanged across unrelated repositories. Repo-, framework-,
-provider-, model-, dataset-, metric-, sport-, or file-layout-specific lessons stay project-scoped.
+A global installation does not mean every lesson is globally shared. Repo-, framework-, provider-,
+dataset-, model-, sport-, metric-, API-, or file-layout-specific knowledge stays project-scoped.
+Global skills are reserved for durable rules that apply unchanged across unrelated repositories.
 
-## Security changes in this fork
+## Security boundary
 
-Compared with the pinned upstream base, the WMS fork adds:
+The WMS distribution differs from the pinned upstream build in these important ways:
 
-1. literal redaction for secret-bearing environment variables;
-2. provider patterns for Anthropic/OpenAI-style/router tokens;
-3. generic `*_KEY`, `*_TOKEN`, `*_SECRET`, `*_PASSWORD`, and credential assignments;
-4. optional appended project redaction rules through `AUTOHARNESS_EXTRA_REDACTION_RULES`;
-5. redaction of SKILL.md bodies and support files, not only evidence slices;
-6. a hook-enforced reflector tool allowlist: Read/Grep/Glob/stage_skill only;
-7. denied reflector reads for common credential-bearing paths;
-8. Windows Claude executable resolution;
-9. `AUTOHARNESS_ALLOW_GLOBAL_WRITES` as a deterministic kill switch for new global skills;
-10. CI gates: complete suite on Linux and hardened security/global suite on Windows.
+1. every persisted evidence slice, SKILL.md body, and support file passes the redactor;
+2. literal values from secret-bearing environment variables are redacted in memory;
+3. built-in rules cover provider tokens, generic secret assignments, complete private-key blocks,
+   credentialed database/cache URIs, JWTs, and existing upstream secret/PII patterns;
+4. project redaction rules can append through `AUTOHARNESS_EXTRA_REDACTION_RULES`;
+5. unattended reflection never uses `--dangerously-skip-permissions`;
+6. unattended Claude uses deny-by-default permission handling and only the exact stage_skill MCP is
+   writable;
+7. background reads are confined to **live AutoHarness-managed skill files**, not application source,
+   credential stores, archives, shell state, Git, Railway, web tools, or arbitrary MCPs;
+8. reflection always uses the redacted `bundle` carrier; a `fork` request fails closed to bundle;
+9. Windows resolves the actual Claude executable instead of assuming a POSIX shim;
+10. `AUTOHARNESS_ALLOW_GLOBAL_WRITES=0` rejects **all** global create/update/patch/delete/remove-file
+    operations at the deterministic promoter while project learning and existing recall continue;
+11. global candidate content must pass the existing repo-agnostic validator;
+12. the reflector and `/autoharness:learn` are instructed to choose project scope whenever global
+    applicability is uncertain.
 
-## Recommended global configuration
+## Install globally
 
-Put the following environment values in the environment that launches Claude Code. These values can
-also be placed in your global Claude settings if that is how you manage Claude Code environment
-variables.
+The preferred installer performs two actions: installs the plugin at Claude Code **user scope** and
+writes a safe AutoHarness profile into `~/.claude/settings.json` while preserving unrelated settings.
+
+### Windows
+
+```powershell
+./scripts/install-global.ps1
+```
+
+### macOS / Linux
+
+```bash
+./scripts/install-global.sh
+```
+
+Equivalent plugin-only commands:
+
+```text
+claude plugin marketplace add ghadfield32/autoharness-wms
+claude plugin install autoharness@autoharness-wms --scope user
+```
+
+The plugin-only path does not write the complete probation profile, although the code default still
+keeps new global-skill writes frozen.
+
+## Lifecycle
+
+### 1. Probation — installer default
+
+`scripts/install-global.*` calls:
+
+```text
+scripts/configure-user-settings.py --mode probation
+```
+
+The effective AutoHarness profile is:
 
 ```json
 {
-  "env": {
-    "AUTOHARNESS_CARRIER": "bundle",
-    "AUTOHARNESS_ALLOW_GLOBAL_WRITES": "1",
-    "AUTOHARNESS_INDEX_SUSPENDED": "0",
-    "AUTOHARNESS_GRADUATION_SUSPENDED": "0",
-    "AUTOHARNESS_MATURITY_GLOBAL": "300",
-    "AUTOHARNESS_CAPACITY_GLOBAL": "20",
-    "AUTOHARNESS_MATURITY_PROJECT": "100",
-    "AUTOHARNESS_CAPACITY_PROJECT": "50",
-    "AUTOHARNESS_SNAPSHOT_KEEP": "5"
-  }
+  "AUTOHARNESS_CARRIER": "bundle",
+  "AUTOHARNESS_ALLOW_GLOBAL_WRITES": "0",
+  "AUTOHARNESS_INDEX_SUSPENDED": "0",
+  "AUTOHARNESS_GRADUATION_SUSPENDED": "1",
+  "AUTOHARNESS_REFLECT_EVERY_N": "999999",
+  "AUTOHARNESS_CONSOLIDATE_EVERY_N": "999999",
+  "AUTOHARNESS_MATURITY_GLOBAL": "300",
+  "AUTOHARNESS_CAPACITY_GLOBAL": "20",
+  "AUTOHARNESS_MATURITY_PROJECT": "100",
+  "AUTOHARNESS_CAPACITY_PROJECT": "50",
+  "AUTOHARNESS_SNAPSHOT_KEEP": "5"
 }
 ```
 
-Do not use `fork` carrier for the WMS production profile. The `bundle` carrier keeps the reflector
-on the redacted episode path.
+This gives a machine-global installation and recall surface while avoiding surprise background
+learning or writes to the shared global skill tree before the installed runtime is checked.
 
-### Emergency global freeze
+### 2. Live acceptance
 
-To stop **new global writes** while leaving project learning and existing global recall intact:
+Use a disposable/synthetic task with a fake secret stored in a secret-bearing environment variable.
+
+Required checks:
+
+1. plugin loads in a fresh Claude Code session;
+2. `/autoharness:learn` can stage and land a **project** lesson;
+3. the exact fake secret is absent from project/global AutoHarness state and skills;
+4. a new session can recall the learned project skill;
+5. global creation is rejected while the probation profile is active;
+6. no background process gains Bash, Write/Edit, web, deployment, GitHub mutation, or arbitrary MCP
+   access.
+
+This is the one gate that cannot be proven by repository CI alone because it exercises the installed
+Claude Code host/plugin runtime.
+
+### 3. Production promotion
+
+After the live acceptance passes:
+
+Windows:
+
+```powershell
+./scripts/promote-global.ps1
+```
+
+macOS / Linux:
+
+```bash
+./scripts/promote-global.sh
+```
+
+Production mode sets:
+
+```text
+AUTOHARNESS_ALLOW_GLOBAL_WRITES=1
+AUTOHARNESS_GRADUATION_SUSPENDED=0
+```
+
+and removes the installer's `999999` cadence overrides so the normal AutoHarness reflection and
+consolidation defaults apply. Existing custom cadence values are preserved.
+
+### 4. Emergency freeze
+
+Windows:
+
+```powershell
+./scripts/freeze-global.ps1
+```
+
+macOS / Linux:
+
+```bash
+./scripts/freeze-global.sh
+```
+
+Freeze mode changes only:
 
 ```text
 AUTOHARNESS_ALLOW_GLOBAL_WRITES=0
 ```
 
-To stop index injection while measuring its value:
-
-```text
-AUTOHARNESS_INDEX_SUSPENDED=1
-```
-
-To stop automatic reflection without uninstalling:
-
-```text
-AUTOHARNESS_REFLECT_EVERY_N=999999
-AUTOHARNESS_CONSOLIDATE_EVERY_N=999999
-```
-
-## Installation
-
-In Claude Code:
-
-```text
-/plugin marketplace add ghadfield32/autoharness-wms
-/plugin install autoharness@autoharness
-/reload-plugins
-```
-
-The plugin name remains `autoharness` intentionally so its MCP namespace and agent references
-continue to match the upstream architecture.
+so project learning and existing global/project recall remain available.
 
 ## Global promotion policy
 
-A global skill is allowed only when all of the following are true:
-
-- it can be applied unchanged in unrelated repositories;
-- it contains no absolute local path;
-- it contains no repository name;
-- it is not tied to a framework, deployment provider, dataset, model family, sport, metric, or file layout;
-- it expresses a durable workflow or user preference;
-- it passes the deterministic promoter and redaction pipeline.
-
-Examples that may be global:
+Good global candidates:
 
 - reproduce → diagnose → patch → targeted test → full gate;
 - do not claim frontend completion from backend evidence alone;
-- read the existing architecture before creating parallel infrastructure;
+- inspect existing architecture before creating parallel infrastructure;
 - separate engineering evidence from scientific/model evidence;
 - update the reusable procedure when a recurring correction is discovered.
 
-Examples that stay project-scoped:
+Project-only examples:
 
 - basketball EPV/VORP/VORA definitions;
-- camera calibration geometry and coordinate conventions;
-- Railway deployment details;
+- camera calibration geometry or coordinate conventions;
+- Railway deployment topology;
 - R2 bucket layout;
 - WMS API/schema names;
-- frontend player-card implementation details.
+- player-card implementation details;
+- repo-specific model/data paths.
 
-## Acceptance gates
+## CI / release gates
 
-The fork is eligible for production only when:
+The canonical distribution is not ready to merge unless all of these remain green:
 
-1. Linux full test suite passes;
-2. Windows `tests/security` passes;
-3. no dummy secret survives the persisted path;
-4. reflector cannot run Bash, Write/Edit, web tools, deployment MCPs, or arbitrary MCPs;
-5. global creation fails when `AUTOHARNESS_ALLOW_GLOBAL_WRITES=0`;
-6. global repo-specific content is rejected;
-7. project learning remains functional when global writes are frozen.
+- Ruff lint;
+- full upstream-derived suite on Linux;
+- cross-platform unit suite on Windows/macOS/Linux with host-capability skips explicitly documented;
+- Python 3.11 plus the supported Python 3.12 Linux check;
+- WMS redaction/persistence/tool-wall/traversal tests;
+- global create and all-action freeze tests;
+- user-profile probation/production/freeze tests;
+- plugin/marketplace distribution metadata tests;
+- source regression test proving unattended spawn never reintroduces
+  `--dangerously-skip-permissions`.
 
-## Runtime verification
+## Correctness model
 
-After installation, use a synthetic session before relying on the plugin for sensitive work.
+AutoHarness decides whether a procedure appears reusable. It does **not** decide whether a scientific
+or engineering assertion is true.
 
-1. Put a fake value in a secret-bearing environment variable.
-2. Solve a trivial task.
-3. Run `/learn`.
-4. Search `~/.claude/autoharness`, `~/.claude/skills`, and the current project's
-   `.claude/autoharness` / `.claude/skills` trees for the exact fake value.
-5. The exact value must not appear anywhere.
-6. Start another Claude Code session and verify the learned skill can be recalled.
+```text
+reuse/adherence          -> evidence of usefulness
+tests/evals/holdouts/CI  -> evidence of correctness
+```
+
+Model validation, geometry checks, schemas, holdouts, CI, and domain-specific tests remain above the
+skill layer.
+
+## Upgrade policy
+
+Do not auto-merge upstream releases. For an upstream update:
+
+1. fetch and pin the new upstream ref;
+2. review capture, redaction, promoter, stage_skill, hooks, spawn, layer paths, agents, lifecycle,
+   plugin metadata, and permissions;
+3. integrate on a dedicated branch;
+4. run the complete WMS matrix;
+5. re-run the redaction/security tests;
+6. bump the WMS release version;
+7. merge only after all gates are green.
 
 ## Rollback
 
-Freeze global writes:
+Plugin uninstall:
 
 ```text
-AUTOHARNESS_ALLOW_GLOBAL_WRITES=0
+claude plugin uninstall autoharness@autoharness-wms --scope user
 ```
 
-Disable the plugin through Claude Code if needed. Existing skills and state remain on disk. Global
-AutoHarness state lives under `~/.claude/autoharness/`; global skills live under
-`~/.claude/skills/`. Project equivalents live under each repository's `.claude/` tree.
+Optional marketplace removal:
 
-Archive or remove only AutoHarness-authored skills after reviewing their sidecars/ledgers; do not
-bulk-delete hand-written skills.
+```text
+claude plugin marketplace remove autoharness-wms
+```
+
+Uninstalling intentionally leaves learned skills/state on disk. Review AutoHarness sidecars/ledgers
+before archiving or removing those folders; never bulk-delete human-authored skills.
