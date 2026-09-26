@@ -93,6 +93,9 @@ def _schema_errors(params):
             level = params.get("level", layer.PROJECT)
             if level not in layer.LAYERS:
                 errors.append(("schema", f"level must be one of {layer.LAYERS}, got {level!r}"))
+            elif level == layer.GLOBAL and not config.ALLOW_GLOBAL_WRITES:
+                errors.append(("global_disabled",
+                               "global skill creation is disabled by AUTOHARNESS_ALLOW_GLOBAL_WRITES=0"))
     elif action == "patch":
         if has_body:
             errors.append(("schema", "patch takes old_string/new_string, not body"))
