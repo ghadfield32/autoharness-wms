@@ -18,7 +18,7 @@ enforces the project/global distinction.
 - Pinned upstream baseline: `ca39a72e4353ebef11b7de13c1fc7fa5f4df421b`
 - WMS security hardening began at commit `e0109bd`
 - Windows Claude launcher fix: `48b2b78`
-- WMS release line: `0.5.4-wms.1`
+- WMS release line: `0.5.4-wms.2`
 
 ## Security invariants
 
@@ -42,7 +42,9 @@ The WMS fork must keep all of these true:
    bundle.
 8. **AutoHarness never edits human-authored skills.** Lifecycle and consolidation operate only on
    self-authored symbols carrying AutoHarness sidecar/ledger markers.
-9. **Correctness remains external.** Skill reuse is evidence of usefulness, not truth. Repository
+9. **Global writes fail closed.** `AUTOHARNESS_ALLOW_GLOBAL_WRITES=0` rejects every global-layer
+   create/update/patch/delete/remove-file at the promoter while project learning and existing recall remain available.
+10. **Correctness remains external.** Skill reuse is evidence of usefulness, not truth. Repository
    tests, schemas, holdouts, geometry checks, model evaluations, and CI remain authoritative.
 
 ## Global installation
@@ -66,8 +68,11 @@ claude plugin marketplace add ghadfield32/autoharness-wms
 claude plugin install autoharness@autoharness-wms --scope user
 ```
 
-User scope is intentional: terminal Claude Code, VS Code, and local desktop sessions on the machine
-read the same user settings. Cloud sessions do not inherit local plugins.
+User scope is intentional: local Claude Code surfaces on the machine use the same user-level plugin
+configuration. The repo installers also apply the **probation** profile: automatic reflection is paused,
+global writes are frozen, and lifecycle graduation is suspended until the installed runtime canary
+passes. `scripts/promote-global.*` enables production mode; `scripts/freeze-global.*` immediately
+freezes new shared-library writes again.
 
 ## Operating model
 
@@ -95,8 +100,8 @@ later reuse / patch / consolidation
 ```
 
 Use `/autoharness:learn` after a lesson has been verified and is worth preserving immediately.
-Automatic reflection remains available at the normal cadence; the same promoter and security boundary
-apply to both paths.
+During installer probation, automatic reflection is deliberately paused. Production promotion restores
+the normal cadence; manual and automatic learning use the same promoter and security boundary.
 
 ## Test gates
 
