@@ -1,7 +1,7 @@
 {
   "name": "autoharness",
   "displayName": "AutoHarness WMS",
-  "version": "0.5.4-wms.1",
+  "version": "0.5.4-wms.2",
   "description": "WMS-hardened self-learning skill layer for Claude Code with secure redaction and deny-by-default background reflection.",
   "author": {
     "name": "World Model Sports"
