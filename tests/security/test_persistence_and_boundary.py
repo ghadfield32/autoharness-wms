@@ -63,7 +63,8 @@ def test_child_stage_skill_allowed(tmp_path):
 
 
 def test_main_session_unaffected(tmp_path):
-    ev = _pre("Bash")\n    ev.pop("agent_type")
+    ev = _pre("Bash")
+    ev.pop("agent_type")
     assert not dispatch.dispatch(ev, roots={"project": tmp_path, "global": tmp_path}).get("deny")
 
 
