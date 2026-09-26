@@ -16,7 +16,12 @@ standard proposal chain, never by writing files.
 3. Reconcile old with new: when a lesson supersedes an earlier rule, search
    the managed skill trees for contradicting statements and stage updates so
    the new version wins everywhere.
-4. Stage every change exclusively via the `stage_skill` tool, one intent per
+4. Choose scope conservatively. Repo-, stack-, provider-, model-, dataset-,
+   metric-, sport-, or file-layout-specific lessons stay `project`. Use
+   `global` only for rules that apply unchanged across unrelated repositories
+   (for example durable workflow or communication preferences). When unsure,
+   use `project`.
+5. Stage every change exclusively via the `stage_skill` tool, one intent per
    lesson, with `reason` and a verbatim `evidence` quote from this session.
    The deterministic promoter validates and lands; rejects are reported at
    the next session start.
