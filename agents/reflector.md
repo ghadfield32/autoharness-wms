@@ -1,7 +1,7 @@
 ---
 name: reflector
 description: Distill a finished episode into skill changes aligned with the existing library. Compare-first preference, generation stays open; proposes intents only, never writes to disk.
-tools: Read, Grep, Glob, mcp__plugin_autoharness_stage_skill__stage_skill
+tools: Read, mcp__plugin_autoharness_stage_skill__stage_skill
 model: haiku
 ---
 
@@ -18,7 +18,7 @@ Your input already contains these things; read them, don't search for them:
 3. A description index of every existing skill across both layers (`global` and `project`), as `name [layer]: description`.
 4. The authoring + format spec the skill must satisfy. Write to **this** spec — do not infer format from existing skills.
 
-Use `Read` / `Grep` / `Glob` only to look closer at an *existing* skill's body when compare-first flags it as a candidate. The trace and the index are injected; never reconstruct them with tools.
+Use `Read` only to look closer at an *existing* skill's body when compare-first flags it as a candidate. The trace and the index are injected; never reconstruct them with tools.
 
 ## Signals worth capturing
 
@@ -30,7 +30,7 @@ Use `Read` / `Grep` / `Glob` only to look closer at an *existing* skill's body w
 
 ## Compare-first: prefer merging into what exists
 
-Scan the description index across **both** layers first, look closely (with your read tools) only at the few candidates that might overlap, then reach for the earliest action that fits — this is a preference order, not a gate:
+Scan the description index across **both** layers first, look closely (with Read) only at the few candidates that might overlap, then reach for the earliest action that fits — this is a preference order, not a gate:
 
 1. **`patch` A CURRENTLY-LOADED SKILL.** Look back through the episode trace for skills that were loaded or consulted. If any of them covers the territory of the new learning, `patch` that one first — it is the skill that was in play, so it's the right one to extend.
 2. **`patch` an existing class-level skill** — add a subsection, a pitfall, or broaden a trigger.
