@@ -62,9 +62,8 @@ def build_curator_bundle(index, spec):
     )
 
 
-# Fork-carrier reflect instruction (direction G): arrives as the -p prompt (a fresh user turn on the
-# forked conversation) — never as --agent/--system-prompt, which would invalidate the parent prefix.
-# Carries the F1 reconcile duty: a new rule must supersede contradicting old statements.
+# The upstream fork carrier replays the parent transcript and therefore bypasses the WMS redacted-bundle
+# boundary. Keep its builders for compatibility/tests, but WMS run() fails closed to the bundle carrier.
 FORK_INSTRUCTION = (
     "Autoharness reflection pass (forked session: the conversation above is your evidence source).\n"
     "Compare-first against the skill index below: prefer patching an existing skill over creating a\n"
@@ -76,9 +75,19 @@ FORK_INSTRUCTION = (
 )
 
 
+STAGE_SKILL_TOOL = "mcp__plugin_autoharness_stage_skill__stage_skill"
+
+
+def _unattended_permissions():
+    # Claude Code >=2.1.259: no interactive approver exists, so every unapproved call is denied.
+    # --tools restricts built-ins; --allowedTools pre-approves only Read + our deterministic stage MCP.
+    return ["--permission-mode", "dontAsk", "--permission-prompts", "none",
+            "--tools", "Read", "--allowedTools", "Read", STAGE_SKILL_TOOL]
+
+
 def build_fork_command(*, session_id, claude_bin):
-    return [claude_bin, "-p", "--resume", str(session_id), "--fork-session",
-            "--dangerously-skip-permissions"]
+    return ([claude_bin, "-p", "--resume", str(session_id), "--fork-session"]
+            + _unattended_permissions())
 
 
 def build_fork_prompt(index, spec):
@@ -88,12 +97,9 @@ def build_fork_prompt(index, spec):
 
 
 def build_command(*, agent, claude_bin):
-    # Reflection is an unattended background job — nobody is there to approve tool calls, so skip the
-    # permission prompt. The security boundary is held by the agent's tools allowlist
-    # (Read/Grep/Glob/stage_skill) + the top-level PreToolUse write backstop, not by the prompt.
-    # (live e2e: a reflector's real stage_skill call gets blocked by the permission gate and can only
-    # "narrate"; only with this flag does it land.)
-    return [claude_bin, "-p", "--agent", agent, "--dangerously-skip-permissions"]
+    # Unattended, but never bypassPermissions: permission prompts are denied and the tool surface is
+    # explicitly reduced. The hook-level allowlist remains a second, independent wall.
+    return [claude_bin, "-p", "--agent", agent] + _unattended_permissions()
 
 
 def child_env(run_id, root, *, base_env=None):
@@ -114,14 +120,14 @@ def run(window_text, run_id, *, roots, repo_name=None, agent=None, claude_bin=No
     proot = roots.get(layer.PROJECT)
     spec = (spec_path or config.FORMAT_SPEC).read_text()
 
+    # WMS hardening: always use the redacted bundle. A fork replays the full parent transcript and
+    # therefore crosses the redaction boundary even if its tool permissions are narrow.
     carrier = carrier or config.REFLECTOR_CARRIER
-    if carrier == "fork" and session_id:  # no session to fork -> bundle chain (fail-safe)
-        argv = build_fork_command(session_id=session_id, claude_bin=claude_bin or config.CLAUDE_BIN)
-        payload = build_fork_prompt(description_index(roots), spec)  # -p reads the prompt from stdin
-    else:
-        argv = build_command(agent=agent or config.REFLECTOR_AGENT,
-                             claude_bin=claude_bin or config.CLAUDE_BIN)
-        payload = build_bundle(window_text, description_index(roots), spec, digest=digest)
+    if carrier != "bundle":
+        carrier = "bundle"
+    argv = build_command(agent=agent or config.REFLECTOR_AGENT,
+                         claude_bin=claude_bin or config.CLAUDE_BIN)
+    payload = build_bundle(window_text, description_index(roots), spec, digest=digest)
 
     env = child_env(run_id, proot)
     (spawn_fn or _detached_spawn)(argv, env, payload)
