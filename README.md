@@ -1,9 +1,11 @@
 <h1 align="center">AutoHarness</h1>
-<p align="center"><strong>Self-Learning Skills for Claude Code</strong></p>
+<p align="center"><strong>Self-Learning Skills for Claude Code — WMS Hardened Fork</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftigerless-labs%2Fautoharness%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=release&prefix=v&color=brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
+  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftigerless-labs%2Fautoharness%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=release&prefix=v&color=brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
 </p>
+
+> **WMS hardened build:** this fork adds secret-literal redaction, restricted reflector tools, Windows Claude spawning, guarded global writes, and CI gates. For the production/global profile, see [docs/WMS_GLOBAL_SETUP.md](docs/WMS_GLOBAL_SETUP.md).
 
 **autoharness is a self-learning skill layer for Claude Code.** It **learns** skills from your real
 sessions, **merges** same-scenario ones instead of stacking near-duplicates, **updates** them in use,
@@ -31,7 +33,7 @@ dependencies); its hooks and MCP server won't fire without it.
 Type these in the Claude Code input box.
 
 ```
-/plugin marketplace add tigerless-labs/autoharness
+/plugin marketplace add ghadfield32/autoharness-wms
 /plugin install autoharness@autoharness
 ```
 
