@@ -43,7 +43,12 @@ if ($plugins -match [regex]::Escape($PluginId)) {
     Invoke-Claude plugin install $PluginId --scope user
 }
 
+$Python = if (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { "python" }
+& $Python (Join-Path $PSScriptRoot "configure-user-settings.py") --mode probation
+if ($LASTEXITCODE -ne 0) { throw "Failed to configure the AutoHarness WMS user profile." }
+
 Write-Host ""
-Write-Host "AutoHarness WMS installed at user scope: enabled across local Claude Code projects." -ForegroundColor Green
+Write-Host "AutoHarness WMS installed at user scope across local Claude Code projects." -ForegroundColor Green
+Write-Host "Safe probation profile applied: automatic reflection paused and global skill writes frozen."
 Write-Host "Start a new session or run /reload-plugins. Use /autoharness:learn only after a lesson is verified."
 Write-Host "Third-party marketplace auto-update stays off unless you explicitly enable it."

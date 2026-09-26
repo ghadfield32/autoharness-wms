@@ -29,7 +29,10 @@ else
   claude plugin install "$PLUGIN_ID" --scope user
 fi
 
+python3 "$(cd "$(dirname "$0")" && pwd)/configure-user-settings.py" --mode probation
+
 echo
-echo "AutoHarness WMS installed at user scope: enabled across local Claude Code projects."
+echo "AutoHarness WMS installed at user scope across local Claude Code projects."
+echo "Safe probation profile applied: automatic reflection paused and global skill writes frozen."
 echo "Start a new session or run /reload-plugins. Use /autoharness:learn only after a verified lesson."
 echo "Third-party marketplace auto-update stays off unless you explicitly enable it."
