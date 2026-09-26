@@ -8,14 +8,14 @@ SECRET = "sk-ant-api03-PERSISTENCECANARYPERSISTENCECANARY"
 
 def test_promoter_redacts_body_files_and_evidence(tmp_path, monkeypatch):
     calls = {}
-    monkeypatch.setattr(promoter.skill_store, "write_body", lambda l, n, body, r: calls.setdefault("body", body))
+    monkeypatch.setattr(promoter.skill_store, "write_body", lambda lv, n, body, r: calls.setdefault("body", body))
     monkeypatch.setattr(promoter.sidecar, "create", lambda *a, **k: None)
     monkeypatch.setattr(promoter.counters, "request_count", lambda *a, **k: 0)
-    monkeypatch.setattr(promoter.ledger, "append", lambda l, n, e, r: calls.setdefault("led", e))
+    monkeypatch.setattr(promoter.ledger, "append", lambda lv, n, e, r: calls.setdefault("led", e))
     written = {}
     monkeypatch.setattr(promoter.atomic, "write_text", lambda p, t: written.__setitem__(str(p), t))
-    monkeypatch.setattr(promoter.layer, "symbol_dir", lambda l, n, r: tmp_path)
-    monkeypatch.setattr(promoter.layer, "subfile_path", lambda l, n, rel, r: tmp_path / rel)
+    monkeypatch.setattr(promoter.layer, "symbol_dir", lambda lv, n, r: tmp_path)
+    monkeypatch.setattr(promoter.layer, "subfile_path", lambda lv, n, rel, r: tmp_path / rel)
     intent = {"action": "create", "reason": "r", "evidence": f"user said {SECRET}",
               "files": {"references/notes.md": f"key {SECRET}"}}
     promoter._land("create", intent, f"# skill\nuse {SECRET}\n", "project", "s", tmp_path)
@@ -48,7 +48,8 @@ def test_child_allowed_tools_pass(tool, inp, tmp_path):
 
 
 def test_main_session_unaffected(tmp_path):
-    ev = _pre("Bash"); ev.pop("agent_type")
+    ev = _pre("Bash")
+    ev.pop("agent_type")
     assert not dispatch.dispatch(ev, roots={"project": tmp_path, "global": tmp_path}).get("deny")
 
 

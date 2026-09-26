@@ -29,6 +29,7 @@ ponytail: a single synchronous process already satisfies "serial single writer";
 import hashlib
 import json
 
+from autoharness import config
 from autoharness.lib import (
     atomic,
     counters,
@@ -147,6 +148,10 @@ def promote(intent, *, roots=None, repo_name=None):
         return _reject(action, None, [("routing", str(exc))])
     if level not in layer.LAYERS:
         return _reject(action, level, [("routing", f"unresolved/illegal level: {level!r}")])
+    if level == layer.GLOBAL and not config.ALLOW_GLOBAL_WRITES:
+        # WMS freeze wall at landing: covers every action (create/update/patch/delete/remove_file) and
+        # every writer (reflector, curator, /learn), not only create-time admission in stage_skill.
+        return _reject(action, level, [("global_disabled", "global writes are frozen by AUTOHARNESS_ALLOW_GLOBAL_WRITES=0")])
 
     root = roots.get(level)
     try:
