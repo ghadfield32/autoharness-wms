@@ -34,8 +34,8 @@ from autoharness.lib import counters, layer
 
 _SANITIZE = re.compile(r"[^A-Za-z0-9_-]")
 _WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
-# child/reflector allowlist enforced at the hook, independent of the --agent tools list: an unattended
-# child runs with --dangerously-skip-permissions, so this is the only wall that does not trust the agent file.
+# Child/reflector allowlist enforced at the hook, independent of Claude Code's own dontAsk/tool
+# restrictions. The two layers are intentionally redundant: neither one has to trust the other.
 _CHILD_TOOLS = ("Read",)
 _STAGE_TOOL = "mcp__plugin_autoharness_stage_skill__stage_skill"
 _SECRET_PATH = re.compile(r"(?i)(^|[\\/])(\.env(\.[^\\/]*)?|\.netrc|\.npmrc|\.pypirc|\.git-credentials|credentials(\.[a-z]+)?"
