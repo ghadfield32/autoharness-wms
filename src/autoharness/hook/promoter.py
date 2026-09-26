@@ -100,7 +100,7 @@ def _land_files(level, name, files, root):
         if not p.resolve().is_relative_to(sdir):
             raise ValueError(f"subfile escapes the skill dir: {rel}")
     for rel, p in paths.items():
-        atomic.write_text(p, files[rel])
+        atomic.write_text(p, redact.redact(files[rel]))  # every persisted byte passes the egress redline
 
 
 def _remove_subfile(level, name, rel, root):
@@ -128,7 +128,7 @@ def _land(action, intent, body, level, name, root):
         return
     _land_files(level, name, intent.get("files"), root)
     evidence_ref = _materialize_evidence(level, name, intent.get("evidence"), root)
-    skill_store.write_body(level, name, body, root)
+    skill_store.write_body(level, name, redact.redact(body), root)
     if action == "create":
         sidecar.create(level, name, counters.request_count(level, root), root)
     else:

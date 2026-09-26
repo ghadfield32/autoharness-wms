@@ -6,6 +6,7 @@ values. Overridable via AUTOHARNESS_* env — for the e2e runbook to shrink the 
 capacity contention fire within a short session); defaults fall back to the placeholders.
 """
 import os
+import re
 from pathlib import Path
 
 from autoharness.lib import layer
@@ -66,6 +67,10 @@ SNAPSHOT_KEEP = _int_env("AUTOHARNESS_SNAPSHOT_KEEP", 5)  # curator pre-run libr
 
 _LIB = Path(__file__).parent / "lib"
 REDACTION_RULES = _LIB / "redaction_rules.toml"  # secret/PII rule set, single source for CAP egress + LED
+EXTRA_REDACTION_RULES_ENV = "AUTOHARNESS_EXTRA_REDACTION_RULES"  # project rules file, appended to the packaged set
+REDACT_ENV_VARS_ENV = "AUTOHARNESS_REDACT_ENV_VARS"  # comma-separated env var names whose literal values are redacted
+SECRET_ENV_NAME = re.compile(r"(?i)(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?|AUTH)$")  # auto-included env names
+SECRET_LITERAL_MIN_LEN = 8  # shorter values (e.g. "1", "true") would shred ordinary text
 FORMAT_SPEC = _LIB / "format_spec.md"            # #416 single source for authoring + lint
 
 CHILD_SESSION_ENV = "AUTOHARNESS_CHILD_SESSION"  # recursion-guard signal: set ONLY by spawn, read by CAP hooks (single source). Must be autoharness-owned: the host sets CLAUDE_CODE_CHILD_SESSION on every hook subprocess, so reusing it would gate every top-level turn.

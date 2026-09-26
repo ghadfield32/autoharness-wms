@@ -33,6 +33,25 @@ from autoharness.lib import counters, layer
 
 _SANITIZE = re.compile(r"[^A-Za-z0-9_-]")
 _WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+# child/reflector allowlist enforced at the hook, independent of the --agent tools list: an unattended
+# child runs with --dangerously-skip-permissions, so this is the only wall that does not trust the agent file.
+_CHILD_TOOLS = ("Read", "Grep", "Glob")
+_STAGE_TOOL_SUFFIX = "__stage_skill"
+_SECRET_PATH = re.compile(r"(?i)(^|[\\/])(\.env(\.[^\\/]*)?|\.netrc|\.npmrc|\.pypirc|\.git-credentials|credentials(\.[a-z]+)?"
+                          r"|id_(rsa|ed25519|ecdsa)[^\\/]*|[^\\/]*\.(pem|key|p12|pfx)|\.ssh|\.aws|\.codex|\.railway)([\\/]|$)")
+
+
+def _child_denial(tool, tool_input):
+    if tool in _WRITE_TOOLS:
+        return "reflector may only stage intents, not write files"
+    if str(tool).endswith(_STAGE_TOOL_SUFFIX):
+        return None
+    if tool not in _CHILD_TOOLS:
+        return f"reflector tool not allowed: {tool}"
+    targets = [str(v) for k in ("file_path", "path", "pattern", "glob") if (v := (tool_input or {}).get(k))]
+    if any(_SECRET_PATH.search(t) for t in targets):
+        return "reflector may not read credential-bearing paths"
+    return None
 
 
 def _roots(roots):
@@ -109,8 +128,10 @@ def dispatch(event, *, roots=None, reflect=None, consolidate=None):
         if name == "PreToolUse":
             tool = event.get("tool_name")
             child = bool(os.environ.get(config.CHILD_SESSION_ENV))
-            if tool in _WRITE_TOOLS and (child or _is_reflector(event)):
-                return {"deny": True, "reason": "reflector may only stage intents, not write files"}
+            if child or _is_reflector(event):
+                reason = _child_denial(tool, event.get("tool_input"))
+                if reason:
+                    return {"deny": True, "reason": reason}
             if not child:  # direction H: every main-session tool call advances the activity numerator
                 sid = event.get("session_id")
                 if isinstance(sid, str) and sid:

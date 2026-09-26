@@ -26,6 +26,24 @@ pattern = '''(?i)bearer\s+[A-Za-z0-9._-]{20,}'''
 name = "api_key_assignment"
 pattern = '''(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['"]?[A-Za-z0-9._\-/+]{12,}'''
 
+[[secret]]
+name = "anthropic_key"
+pattern = '''sk-ant-[A-Za-z0-9_\-]{16,}'''
+
+[[secret]]
+name = "openai_style_key"
+pattern = '''\bsk-(?:proj-)?[A-Za-z0-9_\-]{20,}'''
+
+[[secret]]
+name = "router_key"
+pattern = '''\brk_(?:live_|test_)?[A-Za-z0-9]{16,}'''
+
+[[secret]]
+name = "env_secret_assignment"
+# any *_KEY / *_TOKEN / *_SECRET / *_PASSWORD / *_CREDENTIAL(S) name assigned a value: shell, export,
+# PowerShell $env:, .env, YAML/JSON ("name": "value"). Catches R2_KEY=, RAILWAY_TOKEN=, AWS_SECRET_ACCESS_KEY=.
+pattern = '''(?i)\b[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?)["']?\s*[:=]\s*["']?[^\s"',;]{8,}'''
+
 [[pii]]
 name = "email"
 pattern = '''[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'''
