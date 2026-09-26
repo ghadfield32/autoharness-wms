@@ -11,6 +11,10 @@ name = "private_key_block"
 pattern = '''(?s)-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----'''
 
 [[secret]]
+name = "private_key_header"
+pattern = '''-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----'''
+
+[[secret]]
 name = "github_token"
 pattern = '''gh[posru]_[A-Za-z0-9]{20,}'''
 
