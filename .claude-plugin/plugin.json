@@ -1,10 +1,13 @@
 {
   "name": "autoharness",
-  "version": "0.5.3",
-  "description": "Per-symbol maintenance optimizer for an agent's skill layer — learns skills from real runs and keeps them by adherence in use, not by an offline eval score.",
+  "displayName": "AutoHarness WMS",
+  "version": "0.5.4-wms.1",
+  "description": "WMS-hardened self-learning skill layer for Claude Code with secure redaction and deny-by-default background reflection.",
   "author": {
-    "name": "Tigerless Labs"
+    "name": "World Model Sports"
   },
-  "homepage": "https://github.com/tigerless-labs/autoharness",
-  "license": "MIT"
+  "homepage": "https://github.com/ghadfield32/autoharness-wms",
+  "repository": "https://github.com/ghadfield32/autoharness-wms",
+  "license": "MIT",
+  "keywords": ["claude-code", "skills", "security", "world-model-sports"]
 }
