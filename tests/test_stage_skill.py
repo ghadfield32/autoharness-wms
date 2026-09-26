@@ -42,7 +42,8 @@ def test_default_level_project(tmp_path):
     assert v["ok"] and _queue(tmp_path)[0]["level"] == "project"
 
 
-def test_explicit_global_level(tmp_path):
+def test_explicit_global_level(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "ALLOW_GLOBAL_WRITES", True)
     v = server.stage(_params(level="global"), run_id=RUN, root=tmp_path)
     assert v["ok"] and _queue(tmp_path)[0]["level"] == "global"
 
