@@ -1,11 +1,14 @@
 {
-  "name": "autoharness",
-  "owner": { "name": "World Model Sports" },
+  "name": "autoharness-wms",
+  "description": "World Model Sports hardened AutoHarness distribution for secure global Claude Code use.",
+  "owner": {
+    "name": "World Model Sports"
+  },
   "plugins": [
     {
       "name": "autoharness",
       "source": "./",
-      "description": "Hardened self-learning skill layer for Claude Code with WMS redaction, Windows support, and guarded global skills."
+      "description": "Hardened self-learning Claude Code skill layer with egress redaction, deny-by-default background permissions, and cross-platform tests."
     }
   ]
 }
