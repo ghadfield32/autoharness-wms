@@ -84,3 +84,29 @@ NONSECRETS = [
 @pytest.mark.parametrize("text", NONSECRETS)
 def test_engineering_context_survives(text):
     assert redact(text, env=NO_ENV) == text
+
+
+def test_full_private_key_block_redacted():
+    key = """-----BEGIN PRIVATE KEY-----
+ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+more-private-material
+-----END PRIVATE KEY-----"""
+    out = redact("before\n" + key + "\nafter", env=NO_ENV)
+    assert "more-private-material" not in out
+    assert "BEGIN PRIVATE KEY" not in out
+
+
+@pytest.mark.parametrize("uri", [
+    "postgresql://user:supersecret@db.example.com:5432/app",
+    "redis://default:supersecret@cache.example.com:6379/0",
+    "mongodb+srv://user:supersecret@cluster.example.net/db",
+])
+def test_credentialed_connection_uri_redacted(uri):
+    out = redact(f"connection failed: {uri}", env=NO_ENV)
+    assert uri not in out
+    assert "supersecret" not in out
+
+
+def test_standalone_jwt_redacted():
+    token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signatureABCDEFG"
+    assert token not in redact(f"token={token}", env=NO_ENV)
