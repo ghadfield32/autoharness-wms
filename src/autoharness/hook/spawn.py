@@ -122,9 +122,8 @@ def run(window_text, run_id, *, roots, repo_name=None, agent=None, claude_bin=No
 
     # WMS hardening: always use the redacted bundle. A fork replays the full parent transcript and
     # therefore crosses the redaction boundary even if its tool permissions are narrow.
-    carrier = carrier or config.REFLECTOR_CARRIER
-    if carrier != "bundle":
-        carrier = "bundle"
+    # carrier/session_id remain in the public call signature for upstream compatibility; WMS ignores
+    # both for reflection transport and always materializes the redacted bundle.
     argv = build_command(agent=agent or config.REFLECTOR_AGENT,
                          claude_bin=claude_bin or config.CLAUDE_BIN)
     payload = build_bundle(window_text, description_index(roots), spec, digest=digest)
