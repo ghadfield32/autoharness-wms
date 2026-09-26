@@ -1,11 +1,14 @@
 {
-  "name": "autoharness",
-  "owner": { "name": "Tigerless Labs" },
+  "name": "autoharness-wms",
+  "description": "World Model Sports hardened AutoHarness distribution for secure global Claude Code use.",
+  "owner": {
+    "name": "World Model Sports"
+  },
   "plugins": [
     {
       "name": "autoharness",
       "source": "./",
-      "description": "Per-symbol maintenance optimizer for an agent's skill layer — learns skills from real runs, keeps them by adherence in use."
+      "description": "Hardened self-learning Claude Code skill layer with egress redaction, deny-by-default background permissions, and cross-platform tests."
     }
   ]
 }
