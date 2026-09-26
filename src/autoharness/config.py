@@ -7,6 +7,7 @@ capacity contention fire within a short session); defaults fall back to the plac
 """
 import os
 import re
+import shutil
 from pathlib import Path
 
 from autoharness.lib import layer
@@ -82,7 +83,7 @@ REFLECTOR_CARRIER = os.environ.get("AUTOHARNESS_CARRIER", "bundle")
 
 REFLECTOR_AGENT = "autoharness:reflector"  # the --agent reference for spawn (plugin namespace, Phase 0 resolution pending live test)
 CURATOR_AGENT = "autoharness:curator"      # the --agent reference for the periodic consolidation pass (same spawn chain as reflector)
-CLAUDE_BIN = "claude"                       # the child-session executable for spawn; PATH resolution, overridable in tests
+CLAUDE_BIN = shutil.which("claude") or "claude"  # full path: Windows CreateProcess cannot launch the npm claude.cmd shim by bare name;                     # the child-session executable for spawn; PATH resolution, overridable in tests
 RUN_ID_ENV = "AUTOHARNESS_RUN_ID"           # spawn injects the intent-queue run_id into the child session via env (read by stage_skill)
 # The queue for intents staged from a live user session (/learn, or the model acting on its own).
 # spawn injects a run id into every child it launches and drains that run when the child exits; a
