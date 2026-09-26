@@ -20,7 +20,9 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install test runner
-        run: python -m pip install --upgrade pytest
+        run: python -m pip install --upgrade pytest ruff
+      - name: Lint
+        run: ruff check .
       - name: Run full suite
         run: python -m pytest -q
 
