@@ -13,11 +13,10 @@ def test_curator_frontmatter_present():
 def test_curator_tools_are_least_privilege():
     fm = validate._frontmatter(AGENT.read_text())
     tools = fm["tools"]
-    for allowed in ("Read", "Grep", "Glob"):
-        assert allowed in tools
+    assert "Read" in tools
     # same emit-only write face as the reflector — propose intents, never touch the live tree
     assert "mcp__plugin_autoharness_stage_skill__stage_skill" in tools
-    for forbidden in ("Write", "Edit", "Bash"):
+    for forbidden in ("Write", "Edit", "Bash", "Grep", "Glob"):
         assert forbidden not in tools
 
 
