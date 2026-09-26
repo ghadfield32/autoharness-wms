@@ -8,7 +8,7 @@ def test_wms_plugin_manifest_identity():
     data = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert data["name"] == "autoharness"  # preserve plugin/MCP namespace
     assert data["displayName"] == "AutoHarness WMS"
-    assert data["version"] == "0.5.4-wms.1"
+    assert data["version"] == "0.5.4-wms.2"
     assert "ghadfield32/autoharness-wms" in data["homepage"]
 
 
