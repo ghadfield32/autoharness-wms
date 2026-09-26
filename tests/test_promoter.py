@@ -73,7 +73,9 @@ def test_missing_led_rejected(tmp_path):
     assert not skill_store.exists("project", "foo", roots["project"])
 
 
-def test_global_repo_local_rejected(tmp_path):
+def test_global_repo_local_rejected(tmp_path, monkeypatch):
+    from autoharness import config
+    monkeypatch.setattr(config, "ALLOW_GLOBAL_WRITES", True)
     roots = _roots(tmp_path)
     body = "---\nname: foo\ndescription: d\n---\nRun /home/ryan/tigerless_ai/x.py\n"
     v = promoter.promote(_create(level="global", body=body), roots=roots)
