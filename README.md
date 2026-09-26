@@ -2,7 +2,7 @@
 <p align="center"><strong>Hardened Self-Learning Skills for Claude Code</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/release-v0.5.4--wms.1-brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
+  <img src="https://img.shields.io/badge/release-v0.5.4--wms.2-brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
 </p>
 
 > **World Model Sports hardened fork.** This distribution is pinned from Tigerless Labs AutoHarness
@@ -42,14 +42,9 @@ permission handling.
 
 ### Global install (recommended for WMS)
 
-User scope makes the plugin available in every local Claude Code project on this machine:
-
-```text
-claude plugin marketplace add ghadfield32/autoharness-wms
-claude plugin install autoharness@autoharness-wms --scope user
-```
-
-Or, from a clone of this repository:
+The preferred path is the repo installer. It installs the plugin at Claude Code **user scope** (one
+installation across local projects) and applies the safe probation profile to
+`~/.claude/settings.json` without replacing unrelated settings:
 
 ```powershell
 ./scripts/install-global.ps1
@@ -59,15 +54,24 @@ Or, from a clone of this repository:
 ./scripts/install-global.sh
 ```
 
+The equivalent plugin-only commands are:
+
+```text
+claude plugin marketplace add ghadfield32/autoharness-wms
+claude plugin install autoharness@autoharness-wms --scope user
+```
+
+The plugin itself defaults new global-skill writes to **frozen**. The repo installer is stricter:
+it also pauses automatic reflection and lifecycle graduation until the installed runtime has passed
+the live canary. Promote that installation with `scripts/promote-global.ps1` or
+`scripts/promote-global.sh`; freeze global writes again at any time with the matching
+`freeze-global` script.
+
 Start a new Claude Code session or run `/reload-plugins`. Third-party marketplace auto-update is left
 off by default so WMS upgrades remain deliberate and testable.
 
-Zero config. It now watches your sessions and lands learned skills into `.claude/skills/` in the
-background. Cadence and lifecycle thresholds are tunable — see [Configuration](#configuration).
-
-Nothing to invoke, but one entry point exists when you want it: **`/learn`** distills the session
-you're in right now — say it after working something out and the lesson goes through the same
-proposal-and-validation chain the background pass uses.
+Use **`/autoharness:learn`** after a verified lesson when you want to distill it immediately; automatic
+reflection uses the same redaction, staging, deterministic promoter, and project/global admission gates.
 
 **MCP server naming.** The `.mcp.json` registers the server as `stage_skill`, but agent
 definitions reference the fully-qualified name `mcp__plugin_autoharness_stage_skill__stage_skill`.
@@ -142,7 +146,7 @@ configure unless you want to change the pace.
 | `AUTOHARNESS_MATURITY_GLOBAL` | `300` | Same gate for the global layer — higher because a global skill loads in every project. |
 | `AUTOHARNESS_CAPACITY_PROJECT` | `50` | Cap on *mature* skills in the project layer. It is also what bounds the session-start index: one line per live skill, so the index can never exceed the two caps combined. For graduates, capacity contention is the only death: nothing is archived until the mature pool exceeds this, then the lowest usage rates go first. |
 | `AUTOHARNESS_CAPACITY_GLOBAL` | `20` | Same cap for the global layer — smaller because its blast radius is every project. |
-| `AUTOHARNESS_GRADUATION_SUSPENDED` | `0` | Set to `1` to park graduation review entirely, so nothing is archived for going unused. Meant for when you have reason to doubt the recall surface: archiving on zero use would then be punishing skills for never having been offered. Capacity contention still applies. |
+| `AUTOHARNESS_GRADUATION_SUSPENDED` | `0` | Set to `1` to park graduation review entirely, so nothing is archived for going unused. Meant for when you have reason to doubt the recall surface: archiving on zero use would then be punishing skills for never having been offered. Capacity contention still applies. |\n| `AUTOHARNESS_ALLOW_GLOBAL_WRITES` | `0` | WMS safety gate for the shared `~/.claude/skills/` library. `0` rejects every global create/update/patch/delete/remove-file at landing while project learning and existing recall continue; production promotion sets it to `1`. |
 | `AUTOHARNESS_SNAPSHOT_KEEP` | `5` | How many pre-run snapshots of each skill tree the curator keeps before merging. A merge is the one operation a single atomic rename can't undo. |
 
 Set them in the environment Claude Code launches with — either the shell
