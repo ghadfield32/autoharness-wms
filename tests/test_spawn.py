@@ -1,4 +1,7 @@
+import os
 from pathlib import Path
+
+import pytest
 
 from autoharness import config
 from autoharness.hook import spawn
@@ -79,8 +82,11 @@ def test_build_command_carries_agent_and_print():
     assert cmd[0] == "claude"
     assert "--agent" in cmd and "autoharness:reflector" in cmd
     assert "-p" in cmd
-    # autonomous spawn: no human to approve tool calls → must skip permission prompts
-    assert "--dangerously-skip-permissions" in cmd
+    assert "--dangerously-skip-permissions" not in cmd
+    assert cmd[cmd.index("--permission-mode") + 1] == "dontAsk"
+    assert cmd[cmd.index("--permission-prompts") + 1] == "none"
+    assert cmd[cmd.index("--tools") + 1] == "Read"
+    assert "mcp__plugin_autoharness_stage_skill__stage_skill" in cmd
 
 
 def test_child_env_sets_guard_and_coords_without_polluting():
@@ -88,7 +94,7 @@ def test_child_env_sets_guard_and_coords_without_polluting():
     env = spawn.child_env("run-1", Path("/repo"), base_env=base)
     assert env[config.CHILD_SESSION_ENV]
     assert env[config.RUN_ID_ENV] == "run-1"
-    assert env[config.PROJECT_ROOT_ENV] == "/repo"
+    assert env[config.PROJECT_ROOT_ENV] == str(Path("/repo"))
     assert env["PATH"] == "/x"
     assert base == {"PATH": "/x"}  # input dict untouched (no parent pollution)
 
@@ -212,6 +218,7 @@ def _fake_reflector_script(tmp_path):
     return script
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX shebang fixture is not directly executable on Windows")
 def test_system_fake_reflector_cross_process_lands(tmp_path, monkeypatch):
     monkeypatch.setenv("PYTHONPATH", _SRC)  # child subprocess must import autoharness
     roots = _roots(tmp_path)
@@ -251,6 +258,7 @@ def _fake_curator_script(tmp_path):
     return script
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX shebang fixture is not directly executable on Windows")
 def test_system_fake_curator_cross_process_merges(tmp_path, monkeypatch):
     monkeypatch.setenv("PYTHONPATH", _SRC)  # child subprocess must import autoharness
     roots = _roots(tmp_path)
@@ -279,7 +287,7 @@ def test_build_fork_command_shape():
     assert "--agent" not in argv  # prefix constraint: keep the parent's system prompt
 
 
-def test_run_fork_carrier_sends_instruction_not_window(tmp_path, monkeypatch):
+def test_fork_carrier_request_fails_closed_to_redacted_bundle(tmp_path, monkeypatch):
     monkeypatch.setattr(spawn.config, "REFLECTOR_CARRIER", "fork")
     roots = {"project": tmp_path / "p", "global": tmp_path / "g"}
     seen = {}
@@ -288,10 +296,9 @@ def test_run_fork_carrier_sends_instruction_not_window(tmp_path, monkeypatch):
         seen.update(argv=argv, env=env, payload=payload)
 
     spawn.run("WINDOW-TEXT", "r1", roots=roots, session_id="sess-9", spawn_fn=fake)
-    assert "--fork-session" in seen["argv"]
-    assert "WINDOW-TEXT" not in seen["payload"]  # fork replays the transcript; no materialized window
-    assert "stage_skill" in seen["payload"]      # the reflect instruction rides the prompt
-    assert seen["env"][spawn.config.CHILD_SESSION_ENV] == "1"  # recursion guard still set
+    assert "--fork-session" not in seen["argv"]
+    assert "WINDOW-TEXT" in seen["payload"]
+    assert seen["env"][spawn.config.CHILD_SESSION_ENV] == "1"
 
 
 def test_run_bundle_carrier_unchanged(tmp_path, monkeypatch):
@@ -307,13 +314,13 @@ def test_run_bundle_carrier_unchanged(tmp_path, monkeypatch):
     assert "WINDOW-TEXT" in seen["payload"]  # bundle fallback still materializes the window
 
 
-def test_fork_without_session_falls_back_to_bundle(tmp_path, monkeypatch):
-    monkeypatch.setattr(spawn.config, "REFLECTOR_CARRIER", "fork")
+def test_explicit_fork_argument_also_fails_closed_to_bundle(tmp_path):
     roots = {"project": tmp_path / "p", "global": tmp_path / "g"}
     seen = {}
-    spawn.run("WINDOW-TEXT", "r1", roots=roots, session_id=None,
+    spawn.run("WINDOW-TEXT", "r1", roots=roots, session_id="sess-9", carrier="fork",
               spawn_fn=lambda argv, env, payload: seen.update(argv=argv, payload=payload))
-    assert "--fork-session" not in seen["argv"]  # no session to fork -> bundle chain
+    assert "--fork-session" not in seen["argv"]
+    assert "WINDOW-TEXT" in seen["payload"]
 
 
 # --- curator pre-run snapshot (Phase 12, direction E): library-level tail risk only ---
@@ -351,3 +358,10 @@ def test_snapshot_failure_never_blocks_the_run(tmp_path, monkeypatch):
     called = []
     spawn.run_curator("c1", roots=roots, spawn_fn=lambda a, e, b: called.append(1))
     assert called  # a transient disk issue must not silently disable curation
+
+
+def test_unattended_permissions_never_enable_bypass():
+    args = spawn._unattended_permissions()
+    assert "--dangerously-skip-permissions" not in args
+    assert args[args.index("--permission-mode") + 1] == "dontAsk"
+    assert args[args.index("--permission-prompts") + 1] == "none"

@@ -1,20 +1,30 @@
-<h1 align="center">AutoHarness</h1>
-<p align="center"><strong>Self-Learning Skills for Claude Code — WMS Hardened Fork</strong></p>
+<h1 align="center">AutoHarness WMS</h1>
+<p align="center"><strong>Hardened Self-Learning Skills for Claude Code</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fghadfield32%2Fautoharness-wms%2Fwms%2Fsecurity-hardening%2F.claude-plugin%2Fplugin.json&query=%24.version&label=release&prefix=v&color=brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
+  <img src="https://img.shields.io/badge/release-v0.5.4--wms.2-brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
 </p>
 
-> **WMS hardened build:** this fork adds secret-literal redaction, restricted reflector tools, Windows Claude spawning, guarded global writes, and CI gates. For the production/global profile, see [docs/WMS_GLOBAL_SETUP.md](docs/WMS_GLOBAL_SETUP.md).
+> **World Model Sports hardened fork.** This distribution is pinned from Tigerless Labs AutoHarness
+> v0.5.3 / upstream commit `ca39a72`, then hardened for global use across WMS development machines.
+> It preserves the upstream learning/lifecycle design while adding full persisted-artifact redaction,
+> deny-by-default unattended permissions, managed-skill-only background reads, Windows Claude launcher
+> support, and cross-platform security tests. The upstream project remains credited and licensed under MIT.
+>
+> **Security boundary:** WMS background reflection always uses the redacted `bundle` carrier. Requests for
+> upstream `fork` mode fail closed to `bundle`; background Claude sessions run with `dontAsk` plus no
+> permission prompter, and can only read live AutoHarness-managed skill files or stage an intent through
+> the plugin's deterministic MCP writer.
 
 **autoharness is a self-learning skill layer for Claude Code.** It **learns** skills from your real
 sessions, **merges** same-scenario ones instead of stacking near-duplicates, **updates** them in use,
 and **prunes** any that stop getting used — so the layer **stays clean on its own**, **touching only
 the skills it wrote itself**.
 
-Same model, different harness — 42% → 78% on CORE-Bench ([HAL](https://arxiv.org/abs/2510.11977)).
-The harness does much of the work (swyx's **Big Model vs Big Harness**), yet it's still rebuilt by
-hand every model generation. autoharness bets one slice of it — the skill layer — can maintain itself.
+Agent harnesses can materially change model performance; the upstream project cites the HAL
+CORE-Bench harness result (42% → 78%) as motivation. **That number is not an AutoHarness-specific
+benchmark or measured lift from this plugin.** AutoHarness tests a narrower hypothesis: that one part
+of the harness — the skill layer — can maintain itself from real usage.
 
 | | |
 |---|---|
@@ -27,24 +37,42 @@ hand every model generation. autoharness bets one slice of it — the skill laye
 
 ## Install
 
-**Requires `python3` on your PATH** — autoharness runs entirely as Python (zero third-party
-dependencies); its hooks and MCP server won't fire without it.
+**Requires Python 3.11+ and Claude Code 2.1.259+ on your PATH.** AutoHarness itself has zero
+third-party Python runtime dependencies. The Claude minimum is required for deny-by-default unattended
+permission handling.
 
-Type these in the Claude Code input box.
+### Global install (recommended for WMS)
 
+The preferred path is the repo installer. It installs the plugin at Claude Code **user scope** (one
+installation across local projects) and applies the safe probation profile to
+`~/.claude/settings.json` without replacing unrelated settings:
+
+```powershell
+./scripts/install-global.ps1
 ```
-/plugin marketplace add ghadfield32/autoharness-wms
-/plugin install autoharness@autoharness
+
+```bash
+./scripts/install-global.sh
 ```
 
-Then run `/reload-plugins` (or restart Claude Code).
+The equivalent plugin-only commands are:
 
-Zero config. It now watches your sessions and lands learned skills into `.claude/skills/` in the
-background. Cadence and lifecycle thresholds are tunable — see [Configuration](#configuration).
+```text
+claude plugin marketplace add ghadfield32/autoharness-wms
+claude plugin install autoharness@autoharness-wms --scope user
+```
 
-Nothing to invoke, but one entry point exists when you want it: **`/learn`** distills the session
-you're in right now — say it after working something out and the lesson goes through the same
-proposal-and-validation chain the background pass uses.
+The plugin itself defaults new global-skill writes to **frozen**. The repo installer is stricter:
+it also pauses automatic reflection and lifecycle graduation until the installed runtime has passed
+the live canary. Promote that installation with `scripts/promote-global.ps1` or
+`scripts/promote-global.sh`; freeze global writes again at any time with the matching
+`freeze-global` script.
+
+Start a new Claude Code session or run `/reload-plugins`. Third-party marketplace auto-update is left
+off by default so WMS upgrades remain deliberate and testable.
+
+Use **`/autoharness:learn`** after a verified lesson when you want to distill it immediately; automatic
+reflection uses the same redaction, staging, deterministic promoter, and project/global admission gates.
 
 **MCP server naming.** The `.mcp.json` registers the server as `stage_skill`, but agent
 definitions reference the fully-qualified name `mcp__plugin_autoharness_stage_skill__stage_skill`.
@@ -61,8 +89,8 @@ Update from a terminal — refresh the catalog, then update with the **full `plu
 id**, then restart:
 
 ```
-claude plugin marketplace update autoharness       
-claude plugin update autoharness@autoharness
+claude plugin marketplace update autoharness-wms
+claude plugin update autoharness@autoharness-wms
 ```
 
 Then **restart Claude Code** to apply — a version bump is a fresh cached copy, not a hot reload.
@@ -78,8 +106,8 @@ field is bumped.
 ### Uninstall
 
 ```
-claude plugin uninstall autoharness@autoharness     
-claude plugin marketplace remove autoharness       
+claude plugin uninstall autoharness@autoharness-wms     
+claude plugin marketplace remove autoharness-wms       
 ```
 
 Uninstalling only stops it from running — the skills it landed and its own state live **outside** the
@@ -100,7 +128,7 @@ configure unless you want to change the pace.
 | `AUTOHARNESS_REFLECT_EVERY_N` | `50` | Reflection cadence, counted in **tool calls**, not turns: every main-session tool call advances a counter, and the turn that pushes it past N ends with a background reflection. A working stretch triggers; a conversation that only talks never does. Lower = learns faster and spawns more child sessions. |
 | `AUTOHARNESS_CONSOLIDATE_EVERY_N` | `250` | Same quantum for the curator, the periodic pass that merges the library as a whole. Held well above the reflection cadence — consolidation is rarer than distillation. |
 | `AUTOHARNESS_DIGEST_EXCHANGES` | `20` | How many exchanges *before* the episode window are compressed into the reflector's prior-context digest (text + tool names only). Unused by the fork carrier, which replays the real conversation instead. |
-| `AUTOHARNESS_CARRIER` | `bundle` | What carries the reflection. `bundle` hands a redacted window + digest to a fresh subagent. `fork` resumes and forks the session that just ended, so the reflector reads the real conversation on the parent's warm cache. Stays `bundle` until the cache-hit measurement is in. |
+| `AUTOHARNESS_CARRIER` | `bundle` | WMS hardening always executes the redacted `bundle` carrier. Setting `fork` is accepted for compatibility but fails closed to `bundle`, because replaying the parent transcript would cross the redaction boundary. |
 
 **Recall — what the model sees**
 
@@ -119,7 +147,7 @@ configure unless you want to change the pace.
 | `AUTOHARNESS_MATURITY_GLOBAL` | `300` | Same gate for the global layer — higher because a global skill loads in every project. |
 | `AUTOHARNESS_CAPACITY_PROJECT` | `50` | Cap on *mature* skills in the project layer. It is also what bounds the session-start index: one line per live skill, so the index can never exceed the two caps combined. For graduates, capacity contention is the only death: nothing is archived until the mature pool exceeds this, then the lowest usage rates go first. |
 | `AUTOHARNESS_CAPACITY_GLOBAL` | `20` | Same cap for the global layer — smaller because its blast radius is every project. |
-| `AUTOHARNESS_GRADUATION_SUSPENDED` | `0` | Set to `1` to park graduation review entirely, so nothing is archived for going unused. Meant for when you have reason to doubt the recall surface: archiving on zero use would then be punishing skills for never having been offered. Capacity contention still applies. |
+| `AUTOHARNESS_GRADUATION_SUSPENDED` | `0` | Set to `1` to park graduation review entirely, so nothing is archived for going unused. Meant for when you have reason to doubt the recall surface: archiving on zero use would then be punishing skills for never having been offered. Capacity contention still applies. |\n| `AUTOHARNESS_ALLOW_GLOBAL_WRITES` | `0` | WMS safety gate for the shared `~/.claude/skills/` library. `0` rejects every global create/update/patch/delete/remove-file at landing while project learning and existing recall continue; production promotion sets it to `1`. |
 | `AUTOHARNESS_SNAPSHOT_KEEP` | `5` | How many pre-run snapshots of each skill tree the curator keeps before merging. A merge is the one operation a single atomic rename can't undo. |
 
 Set them in the environment Claude Code launches with — either the shell

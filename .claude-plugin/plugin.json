@@ -1,10 +1,13 @@
 {
   "name": "autoharness",
-  "version": "0.5.4-wms.1",
-  "description": "Hardened self-learning skill layer for Claude Code with redaction, restricted child tools, Windows support, and guarded global skills.",
+  "displayName": "AutoHarness WMS",
+  "version": "0.5.4-wms.2",
+  "description": "WMS-hardened self-learning skill layer for Claude Code with secure redaction and deny-by-default background reflection.",
   "author": {
     "name": "World Model Sports"
   },
   "homepage": "https://github.com/ghadfield32/autoharness-wms",
-  "license": "MIT"
+  "repository": "https://github.com/ghadfield32/autoharness-wms",
+  "license": "MIT",
+  "keywords": ["claude-code", "skills", "security", "world-model-sports"]
 }

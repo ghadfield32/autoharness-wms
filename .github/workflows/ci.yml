@@ -2,8 +2,12 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: ["wms/security-hardening", "global-ready"]
   pull_request:
+    branches: ["wms/security-hardening"]
+
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -17,17 +21,20 @@ jobs:
       - run: ruff check .
 
   test:
-    runs-on: ubuntu-latest
+    name: pytest (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]  # 3.11 is the floor the README advertises
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install pytest
-
-      - name: tests (exclude live-host, tolerate empty collection)
-        run: |
-          python3 -m pytest -m "not live" -q || [ $? -eq 5 ]
+      - run: python -m pytest -m "not live" -q

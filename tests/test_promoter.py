@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from autoharness.hook import promoter
 from autoharness.lib import counters, intent_queue, layer, ledger, sidecar, skill_store
 
@@ -71,7 +73,9 @@ def test_missing_led_rejected(tmp_path):
     assert not skill_store.exists("project", "foo", roots["project"])
 
 
-def test_global_repo_local_rejected(tmp_path):
+def test_global_repo_local_rejected(tmp_path, monkeypatch):
+    from autoharness import config
+    monkeypatch.setattr(config, "ALLOW_GLOBAL_WRITES", True)
     roots = _roots(tmp_path)
     body = "---\nname: foo\ndescription: d\n---\nRun /home/ryan/tigerless_ai/x.py\n"
     v = promoter.promote(_create(level="global", body=body), roots=roots)
@@ -254,7 +258,10 @@ def test_landing_symlink_escape_rejected_zero_write(tmp_path):
     sidecar.create("project", "foo", 0, root)
     outside = tmp_path / "outside"
     outside.mkdir()
-    (_sdir(roots) / "scripts").symlink_to(outside)  # attacker pre-planted symlink out of the tree
+    try:
+        (_sdir(roots) / "scripts").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"host does not permit directory symlinks: {exc}")  # Windows without Developer Mode/admin
     intent = {"action": "update", "name": "foo", "body": FILES_BODY,
               "files": {"scripts/run.sh": "pwned\n"}, "reason": "r", "evidence": "e"}
     v = promoter.promote(intent, roots=roots)
@@ -370,7 +377,10 @@ def test_remove_file_symlink_escape_rejected(tmp_path):
     outside.mkdir()
     victim = outside / "victim.sh"
     victim.write_text("keep me")
-    (_sdir(roots) / "scripts").symlink_to(outside)
+    try:
+        (_sdir(roots) / "scripts").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"host does not permit directory symlinks: {exc}")
     v = promoter.promote(_remove(path="scripts/victim.sh"), roots=roots)
     assert not v["ok"] and "landing" in _families(v)
     assert victim.read_text() == "keep me"  # nothing outside the skill dir was touched

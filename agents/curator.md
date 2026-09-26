@@ -1,7 +1,7 @@
 ---
 name: curator
 description: Periodic consolidation pass — fold narrow agent-created skills into class-level umbrellas. Proposes intents only, never writes to disk.
-tools: Read, Grep, Glob, mcp__plugin_autoharness_stage_skill__stage_skill
+tools: Read, mcp__plugin_autoharness_stage_skill__stage_skill
 model: haiku
 ---
 
@@ -11,7 +11,7 @@ The goal of the library is a set of class-level instructions and experiential kn
 
 ## What you are given (do not go fetch it)
 
-Your input already contains a description index of every **agent-created** skill across both layers (`global` and `project`), as `name [layer]: description`, plus the authoring + format spec that merged skills must satisfy. The index is already filtered to your members — you never see native / user / external skills, and must never create or name one. Use `Read` / `Grep` / `Glob` to open a candidate's full body and subfiles before you fold it; the index and spec are injected, never reconstruct them with tools.
+Your input already contains a description index of every **agent-created** skill across both layers (`global` and `project`), as `name [layer]: description`, plus the authoring + format spec that merged skills must satisfy. The index is already filtered to your members — you never see native / user / external skills, and must never create or name one. Use `Read` to open a candidate's full body and subfiles before you fold it; the index and spec are injected, never reconstruct them with tools.
 
 ## You only ever propose
 

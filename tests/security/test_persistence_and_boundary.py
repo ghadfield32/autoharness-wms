@@ -29,7 +29,9 @@ def _pre(tool, tool_input=None):
 
 
 @pytest.mark.parametrize("tool", ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit", "WebFetch",
-                                  "WebSearch", "Agent", "mcp__railway__deploy", "mcp__github__merge"])
+                                  "WebSearch", "Agent", "Grep", "Glob",
+                                  "mcp__railway__deploy", "mcp__github__merge",
+                                  "mcp__evil__stage_skill"])
 def test_child_disallowed_tools_denied(tool, tmp_path):
     assert dispatch.dispatch(_pre(tool), roots={"project": tmp_path, "global": tmp_path}).get("deny")
 
@@ -40,11 +42,24 @@ def test_child_credential_reads_denied(path, tmp_path):
     assert dispatch.dispatch(_pre("Read", {"file_path": path}), roots={"project": tmp_path, "global": tmp_path}).get("deny")
 
 
-@pytest.mark.parametrize("tool,inp", [("Read", {"file_path": "src/app.py"}), ("Grep", {"pattern": "def main"}),
-                                      ("Glob", {"pattern": "**/*.md"}),
-                                      ("mcp__plugin_autoharness_stage_skill__stage_skill", {})])
-def test_child_allowed_tools_pass(tool, inp, tmp_path):
-    assert not dispatch.dispatch(_pre(tool, inp), roots={"project": tmp_path, "global": tmp_path}).get("deny")
+def test_child_managed_skill_read_allowed(tmp_path):
+    skill = tmp_path / "skills" / "foo" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("# safe skill\n", encoding="utf-8")
+    result = dispatch.dispatch(_pre("Read", {"file_path": str(skill)}),
+                               roots={"project": tmp_path, "global": tmp_path})
+    assert not result.get("deny")
+
+
+@pytest.mark.parametrize("path", ["src/app.py", "README.md", "../outside.txt"])
+def test_child_repo_reads_denied(path, tmp_path):
+    assert dispatch.dispatch(_pre("Read", {"file_path": path}),
+                             roots={"project": tmp_path, "global": tmp_path}).get("deny")
+
+
+def test_child_stage_skill_allowed(tmp_path):
+    tool = "mcp__plugin_autoharness_stage_skill__stage_skill"
+    assert not dispatch.dispatch(_pre(tool), roots={"project": tmp_path, "global": tmp_path}).get("deny")
 
 
 def test_main_session_unaffected(tmp_path):
@@ -59,3 +74,11 @@ def test_stage_subfile_traversal_rejected(rel):
     from autoharness.lib import layer
     with pytest.raises(ValueError):
         layer.check_subfile(rel)
+
+
+def test_child_archived_skill_read_denied(tmp_path):
+    archived = tmp_path / "skills" / ".archive" / "old" / "SKILL.md"
+    archived.parent.mkdir(parents=True)
+    archived.write_text("# old\n", encoding="utf-8")
+    assert dispatch.dispatch(_pre("Read", {"file_path": str(archived)}),
+                             roots={"project": tmp_path, "global": tmp_path}).get("deny")

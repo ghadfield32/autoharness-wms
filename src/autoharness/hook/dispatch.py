@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 from autoharness import config
 from autoharness.hook import (
@@ -33,24 +34,49 @@ from autoharness.lib import counters, layer
 
 _SANITIZE = re.compile(r"[^A-Za-z0-9_-]")
 _WRITE_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
-# child/reflector allowlist enforced at the hook, independent of the --agent tools list: an unattended
-# child runs with --dangerously-skip-permissions, so this is the only wall that does not trust the agent file.
-_CHILD_TOOLS = ("Read", "Grep", "Glob")
-_STAGE_TOOL_SUFFIX = "__stage_skill"
+# Child/reflector allowlist enforced at the hook, independent of Claude Code's own dontAsk/tool
+# restrictions. The two layers are intentionally redundant: neither one has to trust the other.
+_CHILD_TOOLS = ("Read",)
+_STAGE_TOOL = "mcp__plugin_autoharness_stage_skill__stage_skill"
 _SECRET_PATH = re.compile(r"(?i)(^|[\\/])(\.env(\.[^\\/]*)?|\.netrc|\.npmrc|\.pypirc|\.git-credentials|credentials(\.[a-z]+)?"
                           r"|id_(rsa|ed25519|ecdsa)[^\\/]*|[^\\/]*\.(pem|key|p12|pfx)|\.ssh|\.aws|\.codex|\.railway)([\\/]|$)")
 
 
-def _child_denial(tool, tool_input):
+def _managed_skill_read(target, roots):
+    """Allow background reads only inside live managed skill trees.
+
+    The redacted episode, index and format spec are injected into the child already. Source-tree
+    exploration is therefore unnecessary and would widen the credential boundary for no benefit.
+    """
+    if not target:
+        return False
+    try:
+        p = Path(str(target)).expanduser()
+        if not p.is_absolute():
+            p = Path.cwd() / p
+        p = p.resolve(strict=False)
+        for lyr in layer.LAYERS:
+            base = layer.skills_dir(lyr, roots.get(lyr)).resolve(strict=False)
+            if p.is_relative_to(base):
+                rel = p.relative_to(base)
+                return ".archive" not in rel.parts
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return False
+
+
+def _child_denial(tool, tool_input, roots):
     if tool in _WRITE_TOOLS:
         return "reflector may only stage intents, not write files"
-    if str(tool).endswith(_STAGE_TOOL_SUFFIX):
+    if tool == _STAGE_TOOL:
         return None
     if tool not in _CHILD_TOOLS:
         return f"reflector tool not allowed: {tool}"
-    targets = [str(v) for k in ("file_path", "path", "pattern", "glob") if (v := (tool_input or {}).get(k))]
-    if any(_SECRET_PATH.search(t) for t in targets):
+    target = str((tool_input or {}).get("file_path") or "")
+    if _SECRET_PATH.search(target):
         return "reflector may not read credential-bearing paths"
+    if not _managed_skill_read(target, roots):
+        return "reflector may only read live AutoHarness skill files"
     return None
 
 
@@ -129,7 +155,7 @@ def dispatch(event, *, roots=None, reflect=None, consolidate=None):
             tool = event.get("tool_name")
             child = bool(os.environ.get(config.CHILD_SESSION_ENV))
             if child or _is_reflector(event):
-                reason = _child_denial(tool, event.get("tool_input"))
+                reason = _child_denial(tool, event.get("tool_input"), roots)
                 if reason:
                     return {"deny": True, "reason": reason}
             if not child:  # direction H: every main-session tool call advances the activity numerator
