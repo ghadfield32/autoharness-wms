@@ -21,9 +21,10 @@ sessions, **merges** same-scenario ones instead of stacking near-duplicates, **u
 and **prunes** any that stop getting used — so the layer **stays clean on its own**, **touching only
 the skills it wrote itself**.
 
-Same model, different harness — 42% → 78% on CORE-Bench ([HAL](https://arxiv.org/abs/2510.11977)).
-The harness does much of the work (swyx's **Big Model vs Big Harness**), yet it's still rebuilt by
-hand every model generation. autoharness bets one slice of it — the skill layer — can maintain itself.
+Agent harnesses can materially change model performance; the upstream project cites the HAL
+CORE-Bench harness result (42% → 78%) as motivation. **That number is not an AutoHarness-specific
+benchmark or measured lift from this plugin.** AutoHarness tests a narrower hypothesis: that one part
+of the harness — the skill layer — can maintain itself from real usage.
 
 | | |
 |---|---|
