@@ -1,11 +1,20 @@
-<h1 align="center">AutoHarness</h1>
-<p align="center"><strong>Self-Learning Skills for Claude Code — WMS Hardened Fork</strong></p>
+<h1 align="center">AutoHarness WMS</h1>
+<p align="center"><strong>Hardened Self-Learning Skills for Claude Code</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fghadfield32%2Fautoharness-wms%2Fwms%2Fsecurity-hardening%2F.claude-plugin%2Fplugin.json&query=%24.version&label=release&prefix=v&color=brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
+  <img src="https://img.shields.io/badge/release-v0.5.4--wms.1-brightgreen" alt="release" /> <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="python" /> <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="platform" /> <img src="https://img.shields.io/badge/license-MIT-yellow.svg" alt="license MIT" />
 </p>
 
-> **WMS hardened build:** this fork adds secret-literal redaction, restricted reflector tools, Windows Claude spawning, guarded global writes, and CI gates. For the production/global profile, see [docs/WMS_GLOBAL_SETUP.md](docs/WMS_GLOBAL_SETUP.md).
+> **World Model Sports hardened fork.** This distribution is pinned from Tigerless Labs AutoHarness
+> v0.5.3 / upstream commit `ca39a72`, then hardened for global use across WMS development machines.
+> It preserves the upstream learning/lifecycle design while adding full persisted-artifact redaction,
+> deny-by-default unattended permissions, managed-skill-only background reads, Windows Claude launcher
+> support, and cross-platform security tests. The upstream project remains credited and licensed under MIT.
+>
+> **Security boundary:** WMS background reflection always uses the redacted `bundle` carrier. Requests for
+> upstream `fork` mode fail closed to `bundle`; background Claude sessions run with `dontAsk` plus no
+> permission prompter, and can only read live AutoHarness-managed skill files or stage an intent through
+> the plugin's deterministic MCP writer.
 
 **autoharness is a self-learning skill layer for Claude Code.** It **learns** skills from your real
 sessions, **merges** same-scenario ones instead of stacking near-duplicates, **updates** them in use,
@@ -27,17 +36,31 @@ hand every model generation. autoharness bets one slice of it — the skill laye
 
 ## Install
 
-**Requires `python3` on your PATH** — autoharness runs entirely as Python (zero third-party
-dependencies); its hooks and MCP server won't fire without it.
+**Requires Python 3.11+ and Claude Code 2.1.259+ on your PATH.** AutoHarness itself has zero
+third-party Python runtime dependencies. The Claude minimum is required for deny-by-default unattended
+permission handling.
 
-Type these in the Claude Code input box.
+### Global install (recommended for WMS)
 
+User scope makes the plugin available in every local Claude Code project on this machine:
+
+```text
+claude plugin marketplace add ghadfield32/autoharness-wms
+claude plugin install autoharness@autoharness-wms --scope user
 ```
-/plugin marketplace add ghadfield32/autoharness-wms
-/plugin install autoharness@autoharness
+
+Or, from a clone of this repository:
+
+```powershell
+./scripts/install-global.ps1
 ```
 
-Then run `/reload-plugins` (or restart Claude Code).
+```bash
+./scripts/install-global.sh
+```
+
+Start a new Claude Code session or run `/reload-plugins`. Third-party marketplace auto-update is left
+off by default so WMS upgrades remain deliberate and testable.
 
 Zero config. It now watches your sessions and lands learned skills into `.claude/skills/` in the
 background. Cadence and lifecycle thresholds are tunable — see [Configuration](#configuration).
@@ -61,8 +84,8 @@ Update from a terminal — refresh the catalog, then update with the **full `plu
 id**, then restart:
 
 ```
-claude plugin marketplace update autoharness       
-claude plugin update autoharness@autoharness
+claude plugin marketplace update autoharness-wms
+claude plugin update autoharness@autoharness-wms
 ```
 
 Then **restart Claude Code** to apply — a version bump is a fresh cached copy, not a hot reload.
@@ -78,8 +101,8 @@ field is bumped.
 ### Uninstall
 
 ```
-claude plugin uninstall autoharness@autoharness     
-claude plugin marketplace remove autoharness       
+claude plugin uninstall autoharness@autoharness-wms     
+claude plugin marketplace remove autoharness-wms       
 ```
 
 Uninstalling only stops it from running — the skills it landed and its own state live **outside** the
@@ -100,7 +123,7 @@ configure unless you want to change the pace.
 | `AUTOHARNESS_REFLECT_EVERY_N` | `50` | Reflection cadence, counted in **tool calls**, not turns: every main-session tool call advances a counter, and the turn that pushes it past N ends with a background reflection. A working stretch triggers; a conversation that only talks never does. Lower = learns faster and spawns more child sessions. |
 | `AUTOHARNESS_CONSOLIDATE_EVERY_N` | `250` | Same quantum for the curator, the periodic pass that merges the library as a whole. Held well above the reflection cadence — consolidation is rarer than distillation. |
 | `AUTOHARNESS_DIGEST_EXCHANGES` | `20` | How many exchanges *before* the episode window are compressed into the reflector's prior-context digest (text + tool names only). Unused by the fork carrier, which replays the real conversation instead. |
-| `AUTOHARNESS_CARRIER` | `bundle` | What carries the reflection. `bundle` hands a redacted window + digest to a fresh subagent. `fork` resumes and forks the session that just ended, so the reflector reads the real conversation on the parent's warm cache. Stays `bundle` until the cache-hit measurement is in. |
+| `AUTOHARNESS_CARRIER` | `bundle` | WMS hardening always executes the redacted `bundle` carrier. Setting `fork` is accepted for compatibility but fails closed to `bundle`, because replaying the parent transcript would cross the redaction boundary. |
 
 **Recall — what the model sees**
 
